@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Scanner</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div id="container">
+    <h1>Plant Scanner</h1>
+
+    <label for="imageInput" class="custom-file-upload">
+        Upload Image
+    </label>
+    <input type="file" id="imageInput" accept="image/*">
+
+    <button onclick="scanImage()">Scan Image</button>
+
+    <div id="result"></div>
+    <img id="scannedImage" style="max-width: 100%; display: none;">
+</div>
+
+<script>
+    function scanImage() {
+        var input = document.getElementById('imageInput');
+        var file = input.files[0];
+
+        if (file) {
+            var formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/scan', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = 'Class: ' + data.class_name + '<br>Confidence: ' + data.confidence_score;
+
+                // Display the scanned image
+                var scannedImage = document.getElementById('scannedImage');
+                scannedImage.onload = function() {
+                    // Resize the image to 224x224 after it's loaded
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    canvas.width = 224;
+                    canvas.height = 224;
+                    ctx.drawImage(scannedImage, 0, 0, 224, 224);
+
+                    // Update the source of the scanned image
+                    scannedImage.src = canvas.toDataURL('image/jpeg');
+                };
+
+                // Proxy the image through a server to bypass cross-origin issues
+                scannedImage.src = '/proxy?url=' + encodeURIComponent(data.image_path);
+                scannedImage.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
